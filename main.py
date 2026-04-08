@@ -27,10 +27,8 @@ def main():
     # type 数值越小优先级越高
     decider = PriorityDecision(default_type=5, timeout=0.01)
 
-    # 开启摄像头
     cam = FrameGrabber(index=config.CAM_INDEX, width=config.CAM_WIDTH, height=config.CAM_HEIGHT)
 
-    # ROI 配置：仅启动时读取一次
     roi_height_ratio = float(getattr(config, "ROI_HEIGHT", 1.0))
 
     last_print = time.time()
@@ -80,7 +78,6 @@ def main():
                 last_print = now
 
             if config.IMSHOW_FLAG:
-                # wheel 的框/中心点坐标是 ROI 坐标系，因此直接显示 ROI 并绘制
                 vis = wheel_det.draw_latest_on(frame_roi.copy())
                 cv2.imshow("main", vis)
                 if cv2.waitKey(1) & 0xFF == ord('q'):

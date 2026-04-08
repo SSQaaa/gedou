@@ -12,10 +12,8 @@ import config
 
 logger = logging.getLogger(__name__)
 
-
-# 可配置：根据你的赛题/标定修改
-TARGET_ID = 1
-NOT_ID = 2
+TARGET_ID = getattr(config, "APRILTAG_TARGET_ID", 1)
+NOT_ID = getattr(config, "APRILTAG_NOT_ID", 2)
 
 
 @dataclass

@@ -5,9 +5,10 @@ import time
 from threading import Lock
 
 import config
+from utils.beeper import BeeperGPIO36
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, str(getattr(config, "LOG_LEVEL", "INFO")).upper(), logging.INFO),
     format='[%(asctime)s] %(levelname)s %(message)s',
     datefmt='%H:%M:%S'
 )
@@ -30,9 +31,21 @@ class SerialComm:
 
         self.lock = Lock()
         self.last_type = 5
-        # 统一从 config 读取（若未配置则用原默认值）
         self.priority_timeout = float(getattr(config, "PRIORITY_TIMEOUT", 0.01))
         self.last_priority_time = time.time()
+
+        # 蜂鸣器（旧代码思路：type==3 时短鸣一次）
+        self._beeper = None
+        # 由于主循环可能每帧都 send(type=3)，必须做一个很短的节流，
+        # 否则 300ms 的短鸣会被高频调用叠加成“持续长鸣”。
+        self._beep_min_interval_s = float(getattr(config, "BEEP_MIN_INTERVAL", 0.12))
+        self._last_beep_time = 0.0
+        try:
+            self._beeper = BeeperGPIO36(enabled=bool(getattr(config, "BEEP_FLAG", False)))
+            self._beeper.init_high()
+        except Exception:
+            self._beeper = None
+
         time.sleep(1)
 
     def send(self, x, y, type_val):
@@ -46,7 +59,6 @@ class SerialComm:
                 try:
                     self.ser3.write(bytes.fromhex("AABB"))
                     self.ser3.write(data.encode('ascii'))
-                    # self.ser3.flush()
 
                     cmd1 = f"SET_NUM(0,{type_val},1);\r\n"
                     cmd2 = f"SET_NUM(1,{x},3);\r\n"
@@ -54,14 +66,25 @@ class SerialComm:
                     self.ser5.write(cmd1.encode('ascii'))
                     self.ser5.write(cmd2.encode('ascii'))
                     self.ser5.write(cmd3.encode('ascii'))
-                    # self.ser5.flush()
                 except Exception as e:
                     logger.exception("[Serial Send Error] %s", e)
                     return
+
+                # 旧代码思路：type==3 时触发一次短鸣（beep_async 内部会响一小段时间再停）
+                if self._beeper and type_val == 3 and bool(getattr(self._beeper, "enabled", True)):
+                    if current_time - self._last_beep_time >= self._beep_min_interval_s:
+                        self._last_beep_time = current_time
+                        self._beeper.beep_async()
+
                 logger.debug("Sent: %s", data.strip())
                 self.last_type = type_val
 
     def close(self):
+        try:
+            if self._beeper:
+                self._beeper.off()
+        except Exception:
+            pass
         try:
             self.ser3.close()
         except Exception:
