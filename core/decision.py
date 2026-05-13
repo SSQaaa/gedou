@@ -18,6 +18,7 @@ class DecisionResult:
     y: int
     type: int
     score: float = 0.0
+    depth: int = 0
 
 
 class PriorityDecision:
@@ -38,17 +39,20 @@ class PriorityDecision:
 
         self._last_type = int(default_type)
         self._last_time = time.time()
+        self._last_result = DecisionResult(x=0, y=0, type=int(default_type), depth=0, score=0.0)
 
     def reset(self) -> None:
         self._last_type = int(self.default_type)
         self._last_time = time.time()
+        self._last_result = DecisionResult(x=0, y=0, type=int(self.default_type), depth=0, score=0.0)
 
-    def update(self, x: int, y: int, type_val: int, score: float = 0.0) -> DecisionResult:
+    def update(self, x: int, y: int, type_val: int, score: float = 0.0, depth: int = 0) -> DecisionResult:
         now = time.time()
 
         # 超时回退
         if now - self._last_time > self.timeout:
             self._last_type = int(self.default_type)
+            self._last_result = DecisionResult(x=0, y=0, type=int(self.default_type), depth=0, score=0.0)
 
         type_val = int(type_val)
 
@@ -56,10 +60,11 @@ class PriorityDecision:
         if type_val <= self._last_type:
             self._last_type = type_val
             self._last_time = now
-            return DecisionResult(x=int(x), y=int(y), type=type_val, score=float(score))
+            self._last_result = DecisionResult(x=int(x), y=int(y), type=type_val, depth=int(depth), score=float(score))
+            return self._last_result
 
         # 不允许抢占，返回当前保持态（仍然发保持的 type；坐标置 0 更安全）
-        return DecisionResult(x=0, y=0, type=int(self._last_type), score=0.0)
+        return self._last_result
 
 
 # 兼容：提供轻量函数接口（如果你更喜欢函数式调用）

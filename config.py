@@ -1,5 +1,5 @@
 MYCOLOR = "YELLOW"  # "BLUE"
-IMSHOW_FLAG = 0
+IMSHOW_FLAG = 1
 
 # 日志等级："DEBUG" / "INFO" / "WARNING" / "ERROR"
 LOG_LEVEL = "INFO"
@@ -17,7 +17,7 @@ ANCHORS_PATH = "models/anchors_yolov5.txt"
 EZ_RKNN_ASYNC_ROOT = "third_party/ztu_somemodelruntime_ez_rknn_async/python"
 CLASSES = ("wheel",)
 IMG_SIZE = (640, 640)
-OBJ_THRESH = 0.4
+OBJ_THRESH = 0.6
 NMS_THRESH = 0.45
 TOPK = 4
 MAX_DIST = 160
@@ -30,7 +30,10 @@ PRIORITY_TIMEOUT = 0.01
 
 # 摄像头参数
 CAM_INDEX = "/dev/video0"
-CAM_WIDTH = 640
-CAM_HEIGHT = 480
+CAM_WIDTH = 1280
+CAM_HEIGHT = 1024
 
-ROI_HEIGHT = 1
+ROI_HEIGHT = 0.7
+
+APRILTAG_SIZE_MM = 50
+APRILTAG_FOCAL_PX = 457

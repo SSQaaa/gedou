@@ -60,7 +60,7 @@ def main():
                 last_april_seq = april_seq
                 out = None
                 if april_res is not None:
-                    out = decider.update(april_res.x, april_res.y, april_res.type, score=april_res.score)
+                    out = decider.update(april_res.x, april_res.y, april_res.type, score=april_res.score, depth=april_res.depth)
 
                 if last_wheel_res is not None:
                     out = decider.update(last_wheel_res.x, last_wheel_res.y, last_wheel_res.type, score=last_wheel_res.score)
@@ -68,7 +68,7 @@ def main():
                 if out is None:
                     serial_comm.send(0, 0, 5)
                 else:
-                    serial_comm.send(out.x, out.y, out.type)
+                    serial_comm.send(out.x, out.depth, out.type)
 
             now = time.time()
             if now - last_print >= 1.0:

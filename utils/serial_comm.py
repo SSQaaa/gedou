@@ -48,21 +48,23 @@ class SerialComm:
 
         time.sleep(1)
 
-    def send(self, x, y, type_val):
+    def send(self, x, depth, type_val):
         with self.lock:
             current_time = time.time()
             if current_time - self.last_priority_time > self.priority_timeout:
                 self.last_type = 5
             if type_val <= self.last_type:
                 self.last_priority_time = current_time
-                data = f"&x={int(x)}&y={int(y)}&type={type_val}&\r\n"
+                x_hex = max(0, min(0xFFF, int(x)))
+                depth_hex = max(0, min(0xFFFF, int(depth)))
+                data = f"T{int(type_val):X}X{x_hex:03X}D{depth_hex:04X}\r\n"
                 try:
                     self.ser3.write(bytes.fromhex("AABB"))
                     self.ser3.write(data.encode('ascii'))
 
                     cmd1 = f"SET_NUM(0,{type_val},1);\r\n"
                     cmd2 = f"SET_NUM(1,{x},3);\r\n"
-                    cmd3 = f"SET_NUM(2,{y},3);\r\n"
+                    cmd3 = f"SET_NUM(2,{depth},3);\r\n"
                     self.ser5.write(cmd1.encode('ascii'))
                     self.ser5.write(cmd2.encode('ascii'))
                     self.ser5.write(cmd3.encode('ascii'))
@@ -71,7 +73,7 @@ class SerialComm:
                     return
 
                 # 旧代码思路：type==3 时触发一次短鸣（beep_async 内部会响一小段时间再停）
-                if self._beeper and type_val == 3 and bool(getattr(self._beeper, "enabled", True)):
+                if self._beeper and type_val != 5 and bool(getattr(self._beeper, "enabled", True)):
                     if current_time - self._last_beep_time >= self._beep_min_interval_s:
                         self._last_beep_time = current_time
                         self._beeper.beep_async()

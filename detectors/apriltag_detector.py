@@ -2,6 +2,7 @@ import cv2
 import apriltag
 import time
 import logging
+import math
 from dataclasses import dataclass
 from threading import Thread, Lock
 from queue import Queue, Empty
@@ -22,6 +23,7 @@ class AprilDetection:
     y: int
     type: int
     score: float = 1.0
+    depth: int = 0
 
 
 class ApriltagDetector:
@@ -69,6 +71,20 @@ class ApriltagDetector:
         with self._stat_lock:
             self._tp_processed += int(n)
 
+    @staticmethod
+    def _depth_from_corners(corners) -> int:
+        tag_size_mm = float(getattr(config, "APRILTAG_SIZE_MM", 50))
+        focal_px = float(getattr(config, "APRILTAG_FOCAL_PX", 457))
+        sides = []
+        for i in range(4):
+            p1 = corners[i]
+            p2 = corners[(i + 1) % 4]
+            sides.append(math.hypot(float(p1[0]) - float(p2[0]), float(p1[1]) - float(p2[1])))
+        side_px = sum(sides) / max(len(sides), 1)
+        if side_px <= 1e-6:
+            return 0
+        return int(round(focal_px * tag_size_mm / side_px))
+
     def get_throughput_fps(self, reset: bool = True):
         now = time.time()
         with self._stat_lock:
@@ -103,15 +119,16 @@ class ApriltagDetector:
                     if tag.center is None:
                         continue
                     x, y = int(tag.center[0]), int(tag.center[1])
+                    depth = self._depth_from_corners(tag.corners) if tag.corners is not None else 0
 
                     if tag.tag_id == 0:
-                        out = AprilDetection(x=x, y=y, type=1)
+                        out = AprilDetection(x=x, y=y, type=1, depth=depth)
                         break
                     elif tag.tag_id == TARGET_ID:
-                        out = AprilDetection(x=x, y=y, type=2)
+                        out = AprilDetection(x=x, y=y, type=2, depth=depth)
                         break
                     elif tag.tag_id == NOT_ID:
-                        out = AprilDetection(x=x, y=y, type=3)
+                        out = AprilDetection(x=x, y=y, type=3, depth=depth)
                         break
 
             now = time.time()

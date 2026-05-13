@@ -5,6 +5,7 @@ from config import CAM_INDEX, CAM_WIDTH, CAM_HEIGHT
 class FrameGrabber:
     def __init__(self, index=CAM_INDEX, width=CAM_WIDTH, height=CAM_HEIGHT):
         self.cap = cv2.VideoCapture(index)
+        self.output_size = (width // 2, height // 2)
 
         if not self.cap.isOpened():
             raise RuntimeError("Camera open failed")
@@ -20,7 +21,9 @@ class FrameGrabber:
 
     def get(self):
         ret, frame = self.cap.read()
-        return frame if ret else None
+        if not ret:
+            return None
+        return frame[::2, ::2].copy()
 
     def close(self):
         if self.cap.isOpened():
